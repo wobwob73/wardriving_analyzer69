@@ -1,141 +1,157 @@
-# Wardriving Analyzer v4.4.3
+# ⚡ Silver Streak Analyzer (SSA)
 
-Multi-spectrum RF survey / wardriving analysis tool for Ubuntu 24.
+**Version 4.6.1** - Multi-Spectrum RF Survey & GNSS Variance Analysis
 
-It supports:
-- **Offline/local analysis** of one or more CSV runs
-- **Live ingest** from an MQTT broker (optional)
-- Map + table UI with filtering, selection, focus mode, and playback
-- Exports: **KML**, **GeoJSON**, **CSV**, and **PDF/HTML reports**
+A comprehensive RF signal analysis platform for wardriving, flight testing, and GNSS receiver comparison.
 
----
+## Features
 
-## What it does
+### 📡 RF Signal Analysis (Multi-Spectrum)
+- **WiFi** (2.4/5/6 GHz) - Workers A-D
+- **Bluetooth LE** - Worker M
+- **Thread/Matter/Zigbee** - Worker E (ESP32-H2)
+- **WiFi HaLow** (900 MHz) - Worker F
+- DBSCAN clustering for static/mobile classification
+- Real-time MQTT ingestion from field hardware
+- Offline CSV analysis
 
-### Core workflow
-1. **Ingest** one or more CSV files ("runs") and/or stream observations from MQTT.
-2. **Normalize** incoming rows into a consistent internal detection schema using a **CSV Profile**.
-3. **Aggregate** detections into SOIs (signals of interest) by ID (MAC/device identifier).
-4. Compute per-SOI stats (detections, RSSI stats, channels, security modes, strongest point, observed radius, etc.).
-5. **Classify** likely static vs mobile using heuristics (RSSI variance, geographic spread, clustering, multi-run consistency).
-6. **Visualize** in:
-   - **Map View** (markers + selection overlays)
-   - **Table View** (searchable/sortable-ish list with selection)
-7. **Export** GIS formats and/or **generate a report**.
+### 📡 GNSS Link Module (NEW in v4.6.1)
+- Multi-receiver GNSS variance analysis
+- CSV import (Option B format with ReceiverID column)
+- Truth receiver designation for comparison
+- Variance metrics:
+  - Standard deviation (horizontal/vertical)
+  - CEP (50%) - Circular Error Probable
+  - 2DRMS (95%) - 95% accuracy circle
+  - Max deviation tracking
+- Track visualization with coordinate overlay
+- PDF report generation
 
----
+### 📊 Visualization
+- Dark mode Leaflet mapping with multiple basemap options
+- Real-time data streaming via WebSocket
+- Interactive table view with filtering
+- PDF and HTML report generation
 
-## UI highlights
+## Installation
 
-### Filters and visibility
-- Filter by **device type** (WiFi/BLE/Thread/HaLow), **classification**, and **WiFi security**
-- Per-worker **enable/disable** + **opacity sliders**
-- **Whitelist/Hide** SOIs so they are ignored by static display and playback
-- **Focus mode**: dim non-selected SOIs by a configurable opacity
-
-### Selection details
-When selecting a single SOI, the UI can show:
-- **Strongest heard point** (centered on strongest RSSI)
-- **Observed radius** (coverage boundary from captured detections)
-- **Estimated physical location** (weighted center from detections)
-- Additional rings/overlays in map view (first/last seen boundary, weighted area, etc.)
-
-### Playback
-Playback replays detections over time:
-- Shows only SOIs present in the current playback frame
-- Removes SOIs when no longer detected in subsequent frames
-- Obeys worker filters, WiFi security filter, and whitelist
-
-In v4.4.3 the playback controls are **docked in the bottom section of the SOI Info panel** (left side), so they can’t “fail to appear” as a popup.
-
----
-
-## CSV Profiles (important)
-
-Wardriving data in the wild comes in many shapes. This project solves that by using **Profiles**: small JSON mapping files that describe how to interpret a CSV format.
-
-### Built-in profiles
-- `default_profiles/v42_default.json`
-- `default_profiles/scan_extended_v1.json`
-
-### Add your own profile
-1. Open **Settings → Profiles**
-2. Click the **+** button and upload a `*.json` profile
-3. The profile is persisted and will survive restarts (saved under the app’s local config directory).
-
-A profile typically maps:
-- unique ID field (MAC/device id)
-- name/SSID field
-- timestamp field (ISO8601 or epoch)
-- lat/lon fields
-- RSSI field
-- type field (wifi/ble/thread/halow)
-- optional: channel, security
-
----
-
-## Input requirements (minimum)
-
-### For map view & playback
-To render in **Map View** and to participate in **Playback**, detections should include:
-- `timestamp` (ISO8601 or epoch seconds/ms)
-- `lat`, `lon` (non-zero)
-- `rssi` (dBm)
-- unique `id` (MAC/device identifier)
-
-### For table-only analysis
-If GPS is missing, SOIs still appear in **Table View** and are included in exports/reports where relevant.
-
----
-
-## Reports
-
-### Report formats
-- **PDF** (ReportLab)
-- **HTML**
-
-### Report options
-In **Settings → Report Options**:
-- global font family/size/bold
-- company name + font settings
-- optional watermark logo with opacity control (default ~8%)
-
-Reports include (for each SOI):
-- strongest heard point
-- estimated physical location
-- observed radius
-- security/channels/workers and other derived stats
-
----
-
-## Install / Run
+### Quick Start (Ubuntu 24 LTS)
 
 ```bash
-cd wardriving_analyzer
+# Extract and enter directory
+tar -xzf silver_streak_analyzer_v4.6.1.tar.gz
+cd silver_streak_analyzer
+
+# Run installer
+chmod +x install.sh
 ./install.sh
-python3 backend/app.py
+
+# Start the application
+./run.sh
 ```
 
-Then open:
-- http://localhost:5000
+### Manual Installation
 
----
+```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
 
-## Exports
-- **GeoJSON**: `/api/export/geojson`
-- **KML**: `/api/export/kml`
-- **CSV**: `/api/export/csv`
-- **Report**: generated from the UI (selected SOIs or current filtered set)
+# Install dependencies
+pip install -r backend/requirements.txt
 
----
+# Run
+cd backend
+python app.py
+```
 
-## Troubleshooting
+## Usage
 
-### Playback shows “no GPS detections”
-- Ensure your CSV profile correctly maps **timestamp**, **lat**, **lon**, and **RSSI**.
-- Playback only frames detections with GPS.
+### RF Analysis (Wardriving Mode)
 
-### MQTT ingest
-- Confirm broker host/port/credentials
-- Ensure your MQTT payload schema matches the configured handler
+1. Open browser to `http://localhost:5000`
+2. Upload CSV files from wardriving workers
+3. View on map or table
+4. Generate reports
 
+### GNSS Link Mode
+
+1. Click "📡 GNSS Link" tab
+2. Upload GNSS CSV files (Option B format recommended)
+3. Mark truth receivers for comparison
+4. View variance metrics
+5. Generate PDF report
+
+## CSV Formats
+
+### RF Survey CSV (Workers)
+```csv
+Timestamp,MAC,SSID,RSSI,Channel,Security,Lat,Lon,Worker
+2025-01-19T14:30:00,AA:BB:CC:DD:EE:FF,MyNetwork,-65,6,WPA2,40.867,-124.083,A
+```
+
+### GNSS Link CSV (Option B)
+```csv
+Timestamp,ReceiverID,Latitude,Longitude,AltitudeMSL,FixType,SatCount,HDOP,VDOP,PDOP
+2025-01-19T14:30:00,rcvr_01,40.867542,-124.083621,12.1,2,11,0.82,1.18,1.42
+2025-01-19T14:30:00,rcvr_02,40.867540,-124.083619,12.2,3,12,0.78,1.12,1.36
+```
+
+## API Endpoints
+
+### RF Analysis
+- `POST /api/analysis/load-csv` - Load RF CSV files
+- `GET /api/data/access-points` - Get detected APs
+- `POST /api/report/pdf` - Generate PDF report
+
+### GNSS Link
+- `POST /api/gnss/load-csv` - Load GNSS CSV files
+- `GET /api/gnss/metrics` - Get variance metrics
+- `GET /api/gnss/receivers` - Get receiver list
+- `PUT /api/gnss/receivers/<id>` - Update receiver config
+- `POST /api/gnss/report` - Generate GNSS PDF report
+- `GET /api/gnss/export/csv` - Export to Option B CSV
+
+## Configuration
+
+Settings are persisted in `backend/user_data/settings.json`:
+
+```json
+{
+  "report": {
+    "format": "pdf",
+    "dark_mode": true,
+    "route_map_enabled": true
+  }
+}
+```
+
+## System Requirements
+
+- Python 3.10, 3.11, or 3.12
+- 4GB RAM minimum
+- Modern web browser (Chrome, Firefox, Edge)
+
+## Changelog
+
+### v4.6.2 (2026-01-19)
+- **NEW**: Timestamps in list view (First Seen + Last Seen, Zulu time)
+- **NEW**: Sort dropdown (Recent, Oldest, Most/Fewest Detections, Strongest/Weakest, A-Z, Classification)
+- **NEW**: Map search bar - search by name/MAC directly on map view
+- **NEW**: Selected AP auto-scrolls to visible in table view
+- **FIX**: Map zoom no longer resets when deselecting an SOI
+- Highlighted row for selected AP in table view
+
+### v4.6.1 (2026-01-19)
+- **NEW**: GNSS Link module for multi-receiver variance analysis
+- **NEW**: Option B CSV format support (multi-receiver with ReceiverID)
+- **NEW**: Truth receiver designation and comparison metrics
+- **NEW**: GNSS PDF report generation with track overlay
+- Rebranded to "Silver Streak Analyzer" (SSA)
+- Integrated GNSS Link tab in main UI
+- Added CEP (50%), 2DRMS (95%), and max deviation metrics
+
+### v4.4.11
+- Added basemap tile options (OSM, Satellite, Terrain)
+- Version tab in settings
+- Route map overlay improvements
